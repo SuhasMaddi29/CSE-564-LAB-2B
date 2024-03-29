@@ -64,6 +64,7 @@ function adjustDimensionsForContainer(containerId) {
     // Create SVG for data points with titles and axes
     adjustDimensionsForContainer('#mds-points');
     let svgDataPoints = createSvgWithTitles('#mds-points', 'Data Points MDS Plot', 'X Coordinate', 'Y Coordinate');
+    
     // Create SVG for variables with titles and axes
     adjustDimensionsForContainer('#mds-variables');
     let svgVariables = createSvgWithTitles('#mds-variables', 'Variables MDS Plot', 'X Coordinate', 'Y Coordinate');
