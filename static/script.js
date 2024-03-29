@@ -237,29 +237,28 @@ function adjustDimensionsForContainer(containerId) {
         });
 
     function updatePath(xScaleVariables, yScaleVariables) {
-        
         adjustDimensionsForContainer('#mds-variables');
-        
-        // Remove existing path
-        svgVariables.selectAll('path.selection').remove();
     
-        // Draw new path if two or more points are selected
+        // Remove existing lines and markers
+        svgVariables.selectAll('line.selection').remove();
+    
+        // Check if there are at least two points to connect
         if (selectedPoints.length > 1) {
-            let lineGenerator = d3.line()
-                .x(d => d.x)
-                .y(d => d.y);
-    
-            // Append new path
-            svgVariables.append('path')
-                .datum(selectedPoints)
-                .attr('class', 'selection')
-                .attr('d', lineGenerator)
-                .attr('fill', 'none')
-                .attr('stroke', 'blue')
-                .attr('stroke-width', 2)
-                .attr('marker-end', 'url(#arrow)'); // Use the arrow marker defined in SVG
+            for (let i = 0; i < selectedPoints.length - 1; i++) {
+                // Draw a line between each pair of points
+                svgVariables.append('line')
+                    .attr('class', 'selection')
+                    .attr('x1', selectedPoints[i].x)
+                    .attr('y1', selectedPoints[i].y)
+                    .attr('x2', selectedPoints[i + 1].x)
+                    .attr('y2', selectedPoints[i + 1].y)
+                    .attr('stroke', 'blue')
+                    .attr('stroke-width', 2)
+                    .attr('marker-end', 'url(#arrow)'); // Use the arrow marker
+            }
         }
     }
+    
 
     updatePCPBasedOnSelection();
 
