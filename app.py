@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import pandas as pd
 import numpy as np
 from sklearn.manifold import MDS
@@ -32,12 +32,24 @@ df['cluster'] = kmeans.fit_predict(df_numeric_only)
 def index():
     return render_template('index.html')
 
-# Function to serve MDS points data
+@app.route('/data/kmeans-mse')
+def kmeans_mse():
+    max_clusters = 10
+    mse_values = []
+    for k in range(1, max_clusters + 1):
+        kmeans = KMeans(n_clusters=k, random_state=42).fit(df_numeric_only)
+        mse = kmeans.inertia_  # Sum of squared distances of samples to their closest cluster center
+        mse_values.append({'clusters': k, 'mse': mse})
+    return jsonify(mse_values)
+
 @app.route('/data/mds-points')
 def mds_points():
-    mds = MDS(n_components=2, dissimilarity='euclidean', random_state=42)
-    mds_coords = mds.fit_transform(df_numeric_only)  # Use preprocessed data for MDS
-    data = [{'x': float(x), 'y': float(y), 'cluster': int(cluster)} for (x, y), cluster in zip(mds_coords, df['cluster'])]
+    num_clusters = request.args.get('clusters', default=4, type=int)
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(df_numeric_only)
+    df['cluster'] = kmeans.labels_
+    mds = MDS(n_components=2, random_state=42)
+    mds_coords = mds.fit_transform(df_numeric_only)
+    data = [{'x': x, 'y': y, 'cluster': cluster} for (x, y), cluster in zip(mds_coords, df['cluster'])]
     return jsonify(data)
 
 # Function to serve MDS variables data
@@ -56,6 +68,9 @@ def mds_variables():
 @app.route('/data/pcp-data')
 def pcp_data():
     # Using only numerical data and the 'cluster' column for PCP
+    num_clusters = request.args.get('clusters', default=4, type=int)
+    kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(df_numeric_only)
+    df['cluster'] = kmeans.labels_
     numerical_data_with_cluster = df[numerical_features + ['cluster']].copy()
     # Convert DataFrame to a list of dictionaries for JSON response
     data = numerical_data_with_cluster.to_dict('records')

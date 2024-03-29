@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Parameters for the SVG canvas size and plot margins
-    let margin = {top: 100, right: 150, bottom: 60, left: 60};
+    let margin = {top: 100, right: 150, bottom: 80, left: 80};
 
     // At the very top of your script
 let globalWidth = 960 - margin.left - margin.right;
 let globalHeight = 500 - margin.top - margin.bottom;
 
 let selectedPoints = [];
+
+let k;
 
 
 // Then, inside your createSvgWithTitles or before creating SVGs,
@@ -143,7 +145,7 @@ function adjustDimensionsForContainer(containerId) {
                     console.log(selectedPoints);
                 }
                 updatePath(xScaleVariables, yScaleVariables); // Redraw path with updated selectedPoints
-                updatePCPBasedOnSelection();
+                updatePCPBasedOnSelection(k);
             });
         }
         else{
@@ -194,39 +196,157 @@ function adjustDimensionsForContainer(containerId) {
 
     // Function to add a legend to the plot
     function addLegend(svg, colorScale) {
-
+        // Correctly select and remove any existing legends
+        svg.selectAll('.legend').remove();
+    
         let legend = svg.append('g')
-                            .attr('class', 'legend')
-                            .attr('transform', `translate(${globalWidth}, 10)`); // Position legend at the right side of the plot
-
+                        .attr('class', 'legend')
+                        .attr('transform', `translate(${globalWidth + 20}, 20)`); // Adjust translation as needed for visibility
+    
         colorScale.domain().forEach((d, i) => {
             let legendRow = legend.append('g')
-                                    .attr('transform', `translate(0, ${i * 20})`); // Vertical spacing between legend items
+                                  .attr('transform', `translate(0, ${i * 20})`);
             legendRow.append('rect')
-                        .attr('x', -50) // Align rectangles to the left of the text
-                        .attr('width', 18)
-                        .attr('height', 18)
-                        .attr('fill', colorScale(d));
-
+                     .attr('x', 0) // Adjusted for better positioning
+                     .attr('width', 18)
+                     .attr('height', 18)
+                     .attr('fill', colorScale(d));
             legendRow.append('text')
-                        .attr('x', -25) // Space text a bit to the right of the rectangle
-                        .attr('y', 9)
-                        .attr('dy', '.35em')
-                        .style('text-anchor', 'start')
-                        .text(`Cluster ${d}`);
+                     .attr('x', 22) // Adjusted spacing between the rectangle and text
+                     .attr('y', 9)
+                     .attr('dy', '.35em')
+                     .style('text-anchor', 'start')
+                     .text(`Cluster ${d + 1}`);
         });
     }
     
 
-    // Fetch and draw data points with a legend for the data points MDS plot
-    fetch('/data/mds-points')
+    
+function drawKMeansMSEPlot() {
+    const mseSvgWidth = 960 - margin.left - margin.right, mseSvgHeight = 500 - margin.top - margin.bottom; // Adjust size as needed
+    const svg = d3.select("#kmeans-mse").append("svg")
+                  .attr("width", mseSvgWidth + margin.left + margin.right)
+                  .attr("height", mseSvgHeight + margin.top + margin.bottom)
+                  .append("g")
+                  .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    fetch('/data/kmeans-mse')
+        .then(response => response.json())
+        .then(data => {
+            // Set up scales
+            const x = d3.scaleBand()
+                .range([0, mseSvgWidth])
+                .padding(0.1)
+                .domain(data.map(d => d.clusters));
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.mse)])
+                .range([mseSvgHeight, 0]);
+            
+            // Add X axis
+            svg.append("g")
+               .attr("transform", `translate(0,${mseSvgHeight})`)
+               .call(d3.axisBottom(x));
+
+            // Add Y axis
+            svg.append("g")
+               .call(d3.axisLeft(y));
+
+            // Bars
+            svg.selectAll("mybar")
+               .data(data)
+               .enter()
+               .append("rect")
+               .attr("x", d => x(d.clusters))
+               .attr("y", d => y(d.mse))
+               .attr("width", x.bandwidth())
+               .attr("height", d => mseSvgHeight - y(d.mse))
+               .attr("fill", "#69b3a2")
+               .on("click", function(event, d) {
+                // Ensure the cluster number is correctly passed
+                drawMDSPlot(d.clusters);
+                updatePCPBasedOnSelection(d.clusters);
+                k=d.clusters;
+            });
+
+            svg.append('text')
+            .attr('x', mseSvgWidth / 2)
+            .attr('y', 0 - (margin.top / 2))
+            .attr('text-anchor', 'middle')
+            .style('font-size', '24px')
+            .text("K Means Plot");
+ 
+         // X-axis title
+         svg.append('text')
+            .attr('x', mseSvgWidth / 2)
+            .attr('y', mseSvgHeight + 40)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '16px')
+            .text("Number of Clusters");
+ 
+         // Y-axis title
+         svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - margin.left + 10)
+            .attr('x', 0 - (mseSvgHeight / 2) )
+            .attr('dy', '1em')
+            .attr('text-anchor', 'middle')
+            .style('font-size', '16px')
+            .text("Mean Squared Error");
+        });
+}
+    
+function drawMDSPlot(numClusters) { // Default to 4 clusters if not specified
+
+    svgDataPoints.selectAll("*").remove(); // Clear previous MDS plot
+
+    fetch(`/data/mds-points?clusters=${numClusters}`)
         .then(response => response.json())
         .then(data => {
             adjustDimensionsForContainer("mds-points");
 
             drawPointsAndLabels(svgDataPoints, data, xScaleDataPoints, yScaleDataPoints, xAxisDataPoints, yAxisDataPoints, colorScale);
             addLegend(svgDataPoints, colorScale);
+
+            svgDataPoints.append('text')
+            .attr('x', globalWidth / 2)
+            .attr('y', 0 - (margin.top / 2))
+            .attr('text-anchor', 'middle')
+            .style('font-size', '24px')
+            .text("MDS Numerical Plot");
+ 
+         // X-axis title
+         svgDataPoints.append('text')
+            .attr('x', globalWidth / 2)
+            .attr('y', globalHeight + 40)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '16px')
+            .text("X Coordinate");
+ 
+         // Y-axis title
+         svgDataPoints.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - margin.left)
+            .attr('x', 0 - (globalHeight / 2))
+            .attr('dy', '1em')
+            .attr('text-anchor', 'middle')
+            .style('font-size', '16px')
+            .text("Y Coordinate");
         });
+}
+
+
+    // // Fetch and draw data points with a legend for the data points MDS plot
+    // fetch('/data/mds-points')
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         adjustDimensionsForContainer("mds-points");
+
+    //         drawPointsAndLabels(svgDataPoints, data, xScaleDataPoints, yScaleDataPoints, xAxisDataPoints, yAxisDataPoints, colorScale);
+    //         addLegend(svgDataPoints, colorScale);
+    //     });
+
+    drawKMeansMSEPlot();
+    drawMDSPlot();
 
     // Fetch and draw variables with non-overlapping labels for the variables MDS plot
     fetch('/data/mds-variables')
@@ -262,10 +382,13 @@ function adjustDimensionsForContainer(containerId) {
 
     updatePCPBasedOnSelection();
 
-function updatePCPBasedOnSelection() {
-    d3.select('#pcp-all svg g').selectAll('*').remove();
+    adjustDimensionsForContainer('#pcp-all');
+    addLegend(pcpSvg, colorScale);
 
-    fetch('/data/pcp-data')
+function updatePCPBasedOnSelection(numClusters) {
+    pcpSvg.selectAll("*").remove();
+
+    fetch(`/data/pcp-data?clusters=${numClusters}`)
     .then(response => response.json())
     .then(data => {
         let dimensions;
@@ -291,13 +414,13 @@ function updatePCPBasedOnSelection() {
         if(dimensions==null){
             dimensions = Object.keys(data[0]).filter(d => d !== "cluster");
         }
-        
-        console.log(data);
-        console.log(dimensions);
 
         let fixedPositions = dimensions.map((_, i) => i * (globalWidth / (dimensions.length - 1))); // Evenly distribute positions
 
         let processedData = preprocessData(data, dimensions);
+
+        let clusterIds = processedData.map(d => d.cluster).filter((v, i, a) => a.indexOf(v) === i);
+        colorScale.domain(clusterIds);
 
         let dragging = {};
 
@@ -391,6 +514,15 @@ function updatePCPBasedOnSelection() {
                     .on("drag", dragged)
                     .on("end", dragended));
 
+        pcpSvg.append('text')
+            .attr('x', globalWidth / 2)
+            .attr('y', 0 - (margin.top / 2))
+            .attr('text-anchor', 'middle')
+            .style('font-size', '24px')
+            .text("Parallel Coordinates Plot");
+        
+        addLegend(pcpSvg, colorScale);
+ 
         function updateAxisLabels(dimensions) {
             // Calculate the index based on sorted dimensions for alternating positions
             let sortedIndices = dimensions.map(d => x.domain().indexOf(d));
@@ -409,7 +541,7 @@ function updatePCPBasedOnSelection() {
                         .attr("dy", index % 2 == 0 ? "0em" : "1.2em")
                         .style("text-anchor", "middle")
                         .style("fill", "black")
-                        .style("font-size", "8px")
+                        .style("font-size", "10px")
                         .text(d);
                 });
         }

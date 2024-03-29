@@ -3,6 +3,14 @@ body {
     margin: 20px;
 }
 
+body {
+    background-image: url('pastel.jpg');
+    background-size: cover; 
+    background-repeat: no-repeat;
+    background-attachment: fixed; 
+    font-family: Arial, sans-serif;
+}
+
 svg {
     border: 1px solid #ccc;
 }
@@ -19,7 +27,8 @@ text {
 
 #mds-points,
 #mds-variables, 
-#pcp-all {
+#pcp-all,
+#kmeans-mse {
     margin-top: 20px;
     text-align: center;
 }
