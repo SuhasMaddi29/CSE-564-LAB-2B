@@ -1,0 +1,45 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+svg {
+    border: 1px solid #ccc;
+}
+
+circle {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+
+text {
+    pointer-events: none;
+    font-size: 10px;
+}
+
+#mds-points,
+#mds-variables, 
+#pcp-all {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.legend {
+    font-size: 12px;
+}
+
+.legend rect {
+    stroke-width: 0;
+    width: 14px;
+    height: 14px;
+    float: left;
+    margin-right: 5px;
+    margin-top: 4px;
+}
+
+.legend-item {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+/* Add more styling as needed */
