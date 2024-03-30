@@ -11,6 +11,49 @@ body {
     font-family: Arial, sans-serif;
 }
 
+/* Apply a background color to the plot containers for a consistent look */
+#kmeans-mse, #mds-points, #mds-variables, #pcp-all {
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px; /* Ensure space between plots */
+    margin-top: 20px;
+    text-align: center;
+}
+
+/* Style the SVG text for consistency */
+svg text {
+    font-family: 'Arial', sans-serif;
+}
+
+/* Highlighting effect for bars in the KMeans plot */
+.bar:hover {
+    fill: #a3a3a3;
+    cursor: pointer;
+}
+
+/* Selected bar style */
+.bar.selected {
+    fill: #ff7f0e;
+}
+
+/* Tooltip styling */
+.tooltip {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    position: absolute;
+    text-align: center;
+    visibility: hidden;
+}
+
+/* Ensure the legends are readable */
+.legend text {
+    font-size: 0.9em;
+    fill: #333;
+}
+
+
 svg {
     border: 1px solid #ccc;
 }
@@ -25,13 +68,6 @@ text {
     font-size: 10px;
 }
 
-#mds-points,
-#mds-variables, 
-#pcp-all,
-#kmeans-mse {
-    margin-top: 20px;
-    text-align: center;
-}
 
 .legend {
     font-size: 12px;

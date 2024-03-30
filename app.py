@@ -7,6 +7,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.cluster import KMeans
+import json
+import os
 
 app = Flask(__name__, static_folder='static')
 
@@ -42,14 +44,36 @@ def kmeans_mse():
         mse_values.append({'clusters': k, 'mse': mse})
     return jsonify(mse_values)
 
+def precompute_and_save_mds_coordinates():
+    save_folder = 'mds_coords'
+    os.makedirs(save_folder, exist_ok=True)
+    
+    for num_clusters in range(1, 11):  # Adjust as needed
+        kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(df_numeric_only)
+        mds = MDS(n_components=2, random_state=42)
+        mds_coords = mds.fit_transform(df_numeric_only)
+        cluster_labels = kmeans.labels_
+        data = [{'x': float(x), 'y': float(y), 'cluster': int(cluster)} for (x, y), cluster in zip(mds_coords, cluster_labels)]
+        file_path = os.path.join(save_folder, f'mds_coords_{num_clusters}.json')
+        with open(file_path, 'w') as f:
+            json.dump(data, f)
+
+# Function to load precomputed MDS coordinates
+def load_precomputed_mds_coordinates(num_clusters):
+    save_folder = 'mds_coords'
+    file_path = os.path.join(save_folder, f'mds_coords_{num_clusters}.json')
+    
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return data
+    except FileNotFoundError:
+        return []
+
 @app.route('/data/mds-points')
 def mds_points():
     num_clusters = request.args.get('clusters', default=4, type=int)
-    kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(df_numeric_only)
-    df['cluster'] = kmeans.labels_
-    mds = MDS(n_components=2, random_state=42)
-    mds_coords = mds.fit_transform(df_numeric_only)
-    data = [{'x': x, 'y': y, 'cluster': cluster} for (x, y), cluster in zip(mds_coords, df['cluster'])]
+    data = load_precomputed_mds_coordinates(num_clusters)
     return jsonify(data)
 
 # Function to serve MDS variables data
@@ -77,4 +101,5 @@ def pcp_data():
     return jsonify(data)
 
 if __name__ == '__main__':
+    #precompute_and_save_mds_coordinates()
     app.run(debug=True)
